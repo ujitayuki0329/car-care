@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import AdminSidebar, { AdminNavigation } from "./AdminSidebar";
+import AdminSidebar, { AdminNavigation, AdminSidebarFooter } from "./AdminSidebar";
 
 export default function AdminDashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -86,7 +86,7 @@ export default function AdminDashboardShell({ children }: { children: React.Reac
           </button>
         </div>
         <AdminNavigation onNavigate={() => setMobileOpen(false)} />
-        <div className="border-t border-white/[0.06] p-3 text-[10px] text-slate-500">v1</div>
+        <AdminSidebarFooter onBeforeLogout={() => setMobileOpen(false)} />
       </aside>
 
       <div className="min-w-0 flex-1 overflow-x-hidden">{children}</div>

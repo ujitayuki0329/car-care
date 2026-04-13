@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { adminClientLogout } from "@/lib/admin-logout-client";
 
 export const ADMIN_NAV_ITEMS: { href: string; label: string; external?: boolean }[] = [
   { href: "/admin", label: "予約・カレンダー" },
@@ -59,16 +60,35 @@ export function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+/** サイドバー下部：ログアウト + バージョン */
+export function AdminSidebarFooter({ onBeforeLogout }: { onBeforeLogout?: () => void }) {
+  return (
+    <div className="mt-auto shrink-0 border-t border-white/[0.06] p-3">
+      <button
+        type="button"
+        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-left text-sm font-medium text-slate-300 transition hover:border-red-500/30 hover:bg-red-950/40 hover:text-red-100"
+        onClick={() => {
+          onBeforeLogout?.();
+          void adminClientLogout();
+        }}
+      >
+        ログアウト
+      </button>
+      <p className="mt-3 text-[10px] text-slate-500">v1</p>
+    </div>
+  );
+}
+
 /** md 以上でのみ表示する固定サイドバー */
 export default function AdminSidebar() {
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-slate-800/90 bg-slate-950 text-white md:flex">
-      <div className="border-b border-white/[0.06] px-4 py-5">
+    <aside className="hidden min-h-screen w-56 shrink-0 flex-col border-r border-slate-800/90 bg-slate-950 text-white md:flex">
+      <div className="shrink-0 border-b border-white/[0.06] px-4 py-5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Car Care</p>
         <p className="mt-1 text-lg font-semibold leading-tight tracking-tight">管理コンソール</p>
       </div>
       <AdminNavigation />
-      <div className="border-t border-white/[0.06] p-3 text-[10px] text-slate-500">v1</div>
+      <AdminSidebarFooter />
     </aside>
   );
 }

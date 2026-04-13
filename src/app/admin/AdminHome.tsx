@@ -193,11 +193,6 @@ export default function AdminHome() {
     return arr;
   }, [cursor, days, firstWeekday, lastDay]);
 
-  const logout = async () => {
-    await fetch("/api/admin/logout", { method: "POST", credentials: "include" });
-    window.location.href = "/admin/login";
-  };
-
   const postPhone = async () => {
     if (!selected || !phoneStart) return;
     setMessage(null);
@@ -293,18 +288,9 @@ export default function AdminHome() {
   return (
     <main className="surface-page">
       <header className="ui-header">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">予約・シフト</h1>
-            <p className="mt-1 text-xs text-slate-600">カレンダーで受付状況を確認し、電話予約を登録できます。</p>
-          </div>
-          <button
-            type="button"
-            className="ui-btn-secondary self-start text-red-700 hover:border-red-200 hover:bg-red-50 sm:self-auto"
-            onClick={() => void logout()}
-          >
-            ログアウト
-          </button>
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+          <h1 className="text-lg font-bold text-slate-900">予約・シフト</h1>
+          <p className="mt-1 text-xs text-slate-600">カレンダーで受付状況を確認し、電話予約を登録できます。</p>
         </div>
       </header>
 
