@@ -1,0 +1,103 @@
+// 自動車整備向け予約: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminAccount {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  displayName  String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Employee {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?
+  active    Boolean  @default(true)
+  notes     String?
+  shifts    Shift[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shift {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workDate   DateTime @db.Date
+  startTime  String
+  endTime    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([employeeId, workDate])
+  @@index([workDate])
+}
+
+model BusinessDayOverride {
+  id        String   @id @default(cuid())
+  date      DateTime @unique @db.Date
+  isClosed  Boolean  @default(false)
+  openTime  String?
+  closeTime String?
+  memo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BusinessSettings {
+  id                 String   @id @default("default")
+  openTime           String   @default("09:00")
+  closeTime          String   @default("18:00")
+  slotMinutes        Int      @default(30)
+  reservationMinutes Int    @default(60)
+  updatedAt          DateTime @updatedAt
+}
+
+model WeekdayRule {
+  id        String   @id @default(cuid())
+  weekday   Int      @unique
+  isClosed  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model Reservation {
+  id               String            @id @default(cuid())
+  customerName     String
+  phone            String
+  email            String?
+  vehicleInfo      String?
+  date             DateTime          @db.Date
+  startTime        String
+  endTime          String
+  status           ReservationStatus @default(CONFIRMED)
+  source           ReservationSource @default(WEB)
+  notes            String?
+  createdByAdminId String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([date])
+  @@index([date, startTime])
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum ReservationSource {
+  WEB
+  PHONE
+}
