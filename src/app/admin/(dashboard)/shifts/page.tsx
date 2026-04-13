@@ -169,14 +169,14 @@ export default function ShiftsPage() {
   };
 
   return (
-    <main className="surface-page">
-      <header className="ui-header">
-        <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
+    <main className="surface-page flex min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="ui-header shrink-0">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
           <h1 className="text-lg font-bold text-slate-900">シフト管理</h1>
           <p className="mt-1 text-xs text-slate-600">カレンダーで出勤人数を把握し、日付を選んで編集できます。</p>
         </div>
       </header>
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-7xl min-h-0 w-full flex-1 space-y-6 overflow-y-auto px-4 py-8 sm:px-6">
         {message ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{message}</div>
         ) : null}

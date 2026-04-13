@@ -31,7 +31,7 @@ export default function AdminDashboardShell({ children }: { children: React.Reac
   }, [mobileOpen]);
 
   return (
-    <div className="flex min-h-screen min-w-0 flex-col bg-[var(--surface)] md:flex-row">
+    <div className="flex h-dvh max-h-dvh min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--surface)] md:flex-row">
       <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-slate-200/80 bg-white px-3 shadow-sm md:hidden">
         <button
           type="button"
@@ -89,7 +89,7 @@ export default function AdminDashboardShell({ children }: { children: React.Reac
         <AdminSidebarFooter onBeforeLogout={() => setMobileOpen(false)} />
       </aside>
 
-      <div className="min-w-0 flex-1 overflow-x-hidden">{children}</div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
     </div>
   );
 }

@@ -111,8 +111,8 @@ export default function ReservationHistoryPage() {
   };
 
   return (
-    <main className="surface-page">
-      <header className="ui-header">
+    <main className="surface-page flex min-h-0 flex-1 flex-col overflow-hidden">
+      <header className="ui-header shrink-0">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
           <h1 className="text-lg font-bold text-slate-900">予約履歴</h1>
           <p className="mt-1 max-w-2xl text-xs text-slate-600">
@@ -121,7 +121,7 @@ export default function ReservationHistoryPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-7xl min-h-0 w-full flex-1 overflow-y-auto px-4 py-8 sm:px-6">
         {error ? (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
         ) : null}

@@ -33,7 +33,7 @@ export function AdminNavigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-1 flex-col gap-1 p-3">
+    <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
       {ADMIN_NAV_ITEMS.map(({ href, label, external }) => {
         const active = isActivePath(pathname, href);
         if (external) {
@@ -82,7 +82,7 @@ export function AdminSidebarFooter({ onBeforeLogout }: { onBeforeLogout?: () => 
 /** md 以上でのみ表示する固定サイドバー */
 export default function AdminSidebar() {
   return (
-    <aside className="hidden min-h-screen w-56 shrink-0 flex-col border-r border-slate-800/90 bg-slate-950 text-white md:flex">
+    <aside className="hidden h-full min-h-0 w-56 shrink-0 flex-col border-r border-slate-800/90 bg-slate-950 text-white md:flex">
       <div className="shrink-0 border-b border-white/[0.06] px-4 py-5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Car Care</p>
         <p className="mt-1 text-lg font-semibold leading-tight tracking-tight">管理コンソール</p>

@@ -41,6 +41,10 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   const gate = await requireAdminResponse();
   if (gate instanceof NextResponse) return gate;
 
-  await prisma.employee.delete({ where: { id: params.id } }).catch(() => null);
-  return NextResponse.json({ ok: true });
+  try {
+    await prisma.employee.delete({ where: { id: params.id } });
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "従業員が見つからないか、削除できませんでした" }, { status: 404 });
+  }
 }
