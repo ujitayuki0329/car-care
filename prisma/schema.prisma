@@ -5,8 +5,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  /// Supabase: マイグレーション / db push 用（Session pooler または Direct・5432）。実行時のクエリは url（Transaction pooler・6543）を使う。
+  directUrl = env("DIRECT_URL")
 }
 
 model AdminAccount {

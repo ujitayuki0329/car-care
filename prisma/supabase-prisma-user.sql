@@ -1,0 +1,16 @@
+-- Supabase SQL Editor で実行（任意）
+-- Prisma専用ロールを作り、接続文字列のユーザー名を prisma にできる。
+-- 手順: https://supabase.com/docs/guides/database/prisma
+--
+-- 実行後、Connect の URI で [DB-USER] を prisma に、パスワードを下記と一致させる。
+
+-- create user "prisma" with password 'custom_password' bypassrls createdb;
+-- grant "prisma" to "postgres";
+-- grant usage on schema public to prisma;
+-- grant create on schema public to prisma;
+-- grant all on all tables in schema public to prisma;
+-- grant all on all routines in schema public to prisma;
+-- grant all on all sequences in schema public to prisma;
+-- alter default privileges for role postgres in schema public grant all on tables to prisma;
+-- alter default privileges for role postgres in schema public grant all on routines to prisma;
+-- alter default privileges for role postgres in schema public grant all on sequences to prisma;
