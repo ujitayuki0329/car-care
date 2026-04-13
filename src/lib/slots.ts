@@ -138,19 +138,77 @@ export function buildSlotsForDay(ctx: Awaited<ReturnType<typeof loadSchedulingCo
 
 export async function getMonthAvailability(year: number, month: number): Promise<DayAvailabilitySummary[]> {
   const last = new Date(Date.UTC(year, month, 0));
-  const out: DayAvailabilitySummary[] = [];
+  const lastDay = last.getUTCDate();
+  const firstDay = new Date(Date.UTC(year, month - 1, 1));
+  const lastDayDate = new Date(Date.UTC(year, month - 1, lastDay));
 
-  for (let d = 1; d <= last.getUTCDate(); d++) {
+  const [defaults, weekdayRules, overrides, shifts, reservations] = await Promise.all([
+    resolveScheduleDefaults(prisma),
+    prisma.weekdayRule.findMany(),
+    prisma.businessDayOverride.findMany({
+      where: { date: { gte: firstDay, lte: lastDayDate } },
+    }),
+    prisma.shift.findMany({
+      where: { workDate: { gte: firstDay, lte: lastDayDate } },
+      include: { employee: true },
+    }),
+    prisma.reservation.findMany({
+      where: {
+        date: { gte: firstDay, lte: lastDayDate },
+        status: "CONFIRMED",
+      },
+      select: { date: true, startTime: true, endTime: true, status: true },
+    }),
+  ]);
+
+  const weekdayRuleByWd = new Map(weekdayRules.map((r) => [r.weekday, r]));
+  const overrideByIso = new Map<string, BusinessDayOverride>();
+  for (const o of overrides) {
+    overrideByIso.set(formatISODate(o.date), o);
+  }
+
+  const shiftsByIso = new Map<string, ShiftWithEmployee[]>();
+  for (const s of shifts) {
+    const iso = formatISODate(s.workDate);
+    const arr = shiftsByIso.get(iso) ?? [];
+    arr.push(s);
+    shiftsByIso.set(iso, arr);
+  }
+
+  const reservationsByIso = new Map<string, Pick<Reservation, "startTime" | "endTime" | "status">[]>();
+  for (const r of reservations) {
+    const iso = formatISODate(r.date);
+    const arr = reservationsByIso.get(iso) ?? [];
+    arr.push({ startTime: r.startTime, endTime: r.endTime, status: r.status });
+    reservationsByIso.set(iso, arr);
+  }
+
+  const out: DayAvailabilitySummary[] = [];
+  for (let d = 1; d <= lastDay; d++) {
     const date = new Date(Date.UTC(year, month - 1, d));
-    const ctx = await loadSchedulingContext(date);
+    const iso = formatISODate(date);
+    const weekday = jsWeekdayToDb(date);
+    const dayStart = parseISODateOnly(iso);
+
+    const ctx = {
+      date: dayStart,
+      iso,
+      weekday,
+      defaults,
+      override: overrideByIso.get(iso) ?? null,
+      weekdayRule: weekdayRuleByWd.get(weekday) ?? null,
+      shifts: (shiftsByIso.get(iso) ?? []).filter((s) => s.employee.active),
+      reservations: reservationsByIso.get(iso) ?? [],
+    };
+
     const hours = effectiveBusinessHours(ctx);
     if (!hours.open) {
-      out.push({ date: formatISODate(date), isOpen: false, hasAvailableSlot: false });
+      out.push({ date: iso, isOpen: false, hasAvailableSlot: false });
       continue;
     }
     const slots = buildSlotsForDay(ctx);
     const hasAvailableSlot = slots.some((s) => s.available);
-    out.push({ date: formatISODate(date), isOpen: true, hasAvailableSlot });
+    out.push({ date: iso, isOpen: true, hasAvailableSlot });
   }
 
   return out;
