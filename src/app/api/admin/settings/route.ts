@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminResponse } from "@/lib/api-admin";
 import { prisma } from "@/lib/prisma";
-import { resolveScheduleDefaults, SETTINGS_ID } from "@/lib/business-schedule-defaults";
+import { SETTINGS_ID } from "@/lib/business-schedule-defaults";
 import { getEnvScheduleDefaults } from "@/lib/config";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const patchScheduleSchema = z.object({
   openTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -16,9 +19,19 @@ export async function GET() {
   const gate = await requireAdminResponse();
   if (gate instanceof NextResponse) return gate;
 
-  const row = await prisma.businessSettings.findUnique({ where: { id: SETTINGS_ID } });
-  const defs = await resolveScheduleDefaults(prisma);
-  const weekdayRules = await prisma.weekdayRule.findMany({ orderBy: { weekday: "asc" } });
+  const envDefaults = getEnvScheduleDefaults();
+  const [row, weekdayRules] = await Promise.all([
+    prisma.businessSettings.findUnique({ where: { id: SETTINGS_ID } }),
+    prisma.weekdayRule.findMany({ orderBy: { weekday: "asc" } }),
+  ]);
+  const defs = row
+    ? {
+        openTime: row.openTime,
+        closeTime: row.closeTime,
+        slotMinutes: row.slotMinutes,
+        reservationMinutes: row.reservationMinutes,
+      }
+    : envDefaults;
 
   return NextResponse.json({
     defaults: {
@@ -28,7 +41,7 @@ export async function GET() {
       reservationMinutes: defs.reservationMinutes,
     },
     scheduleStoredInDb: Boolean(row),
-    envFallback: getEnvScheduleDefaults(),
+    envFallback: envDefaults,
     weekdayRules,
   });
 }

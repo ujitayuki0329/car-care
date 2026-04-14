@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminResponse } from "@/lib/api-admin";
-import { buildSlotsForDay, loadSchedulingContext } from "@/lib/slots";
+import { buildSlotsForDay } from "@/lib/slots";
+import { resolveScheduleDefaults } from "@/lib/business-schedule-defaults";
 import { parseISODateOnly } from "@/lib/time";
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   const gate = await requireAdminResponse();
@@ -14,17 +18,32 @@ export async function GET(req: NextRequest) {
   }
 
   const date = parseISODateOnly(dateStr);
-  const ctx = await loadSchedulingContext(date);
-  const slots = buildSlotsForDay(ctx);
+  const weekday = date.getUTCDay();
+  const [defaults, override, weekdayRule, shifts, reservations] = await Promise.all([
+    resolveScheduleDefaults(prisma),
+    prisma.businessDayOverride.findUnique({ where: { date } }),
+    prisma.weekdayRule.findUnique({ where: { weekday } }),
+    prisma.shift.findMany({
+      where: { workDate: date },
+      include: { employee: true },
+    }),
+    prisma.reservation.findMany({
+      where: { date },
+      orderBy: [{ startTime: "asc" }],
+    }),
+  ]);
 
-  const reservations = await prisma.reservation.findMany({
-    where: { date: parseISODateOnly(dateStr) },
-    orderBy: [{ startTime: "asc" }],
-  });
-
-  const shifts = await prisma.shift.findMany({
-    where: { workDate: parseISODateOnly(dateStr) },
-    include: { employee: true },
+  const slots = buildSlotsForDay({
+    date,
+    iso: dateStr,
+    weekday,
+    defaults,
+    override,
+    weekdayRule,
+    shifts: shifts.filter((s) => s.employee.active),
+    reservations: reservations
+      .filter((r) => r.status === "CONFIRMED")
+      .map((r) => ({ startTime: r.startTime, endTime: r.endTime, status: r.status })),
   });
 
   return NextResponse.json({ slots, reservations, shifts });

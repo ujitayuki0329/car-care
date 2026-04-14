@@ -60,7 +60,7 @@ export default function ReservePage() {
     setLoadingCal(true);
     setError(null);
     try {
-      const res = await fetch(`/api/public/calendar?year=${cursor.y}&month=${cursor.m}`);
+      const res = await fetch(`/api/public/calendar?year=${cursor.y}&month=${cursor.m}`, { cache: "no-store" });
       const raw = await safeParseJson(res);
       const data = asRecord(raw);
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "カレンダー取得失敗");
@@ -81,7 +81,7 @@ export default function ReservePage() {
     setLoadingSlots(true);
     setError(null);
     try {
-      const res = await fetch(`/api/public/slots?date=${encodeURIComponent(date)}`);
+      const res = await fetch(`/api/public/slots?date=${encodeURIComponent(date)}`, { cache: "no-store" });
       const raw = await safeParseJson(res);
       const data = asRecord(raw);
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "枠取得失敗");
@@ -97,8 +97,8 @@ export default function ReservePage() {
   const onPickDate = async (date: string) => {
     setSelectedDate(date);
     setSelectedSlot(null);
-    await loadSlots(date);
     setStep(3);
+    await loadSlots(date);
   };
 
   const { firstWeekday, lastDay } = useMemo(() => utcMonthMeta(cursor.y, cursor.m), [cursor]);

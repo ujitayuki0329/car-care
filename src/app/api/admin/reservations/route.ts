@@ -9,6 +9,9 @@ import { resolveScheduleDefaults } from "@/lib/business-schedule-defaults";
 import { buildNotesWithMenu } from "@/lib/reservation-notes";
 import { isServiceMenu } from "@/lib/service-menu";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const createSchema = z.object({
   customerName: z.string().min(1).max(120),
   phone: z.string().min(10).max(24),

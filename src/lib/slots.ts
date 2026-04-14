@@ -136,6 +136,48 @@ export function buildSlotsForDay(ctx: Awaited<ReturnType<typeof loadSchedulingCo
   return slots;
 }
 
+function hasAvailableSlotForDay(
+  ctx: Pick<
+    Awaited<ReturnType<typeof loadSchedulingContext>>,
+    "defaults" | "override" | "weekdayRule" | "shifts" | "reservations"
+  >,
+): boolean {
+  const hours = effectiveBusinessHours(ctx as Awaited<ReturnType<typeof loadSchedulingContext>>);
+  if (!hours.open) return false;
+
+  const openM = timeToMinutes(hours.openTime);
+  const closeM = timeToMinutes(hours.closeTime);
+  const step = ctx.defaults.slotMinutes;
+  const dur = ctx.defaults.reservationMinutes;
+
+  const shiftRanges = ctx.shifts.map((s) => ({
+    start: timeToMinutes(s.startTime),
+    end: timeToMinutes(s.endTime),
+  }));
+  const reservationRanges = ctx.reservations.map((r) => ({
+    start: timeToMinutes(r.startTime),
+    end: timeToMinutes(r.endTime),
+  }));
+
+  for (let t = openM; t + dur <= closeM; t += step) {
+    const slotEnd = t + dur;
+    let capacity = 0;
+    for (const s of shiftRanges) {
+      if (s.start <= t && s.end >= slotEnd) capacity += 1;
+    }
+    if (capacity === 0) continue;
+
+    let booked = 0;
+    for (const r of reservationRanges) {
+      if (intervalsOverlap(t, slotEnd, r.start, r.end)) booked += 1;
+      if (booked >= capacity) break;
+    }
+    if (booked < capacity) return true;
+  }
+
+  return false;
+}
+
 export async function getMonthAvailability(year: number, month: number): Promise<DayAvailabilitySummary[]> {
   const last = new Date(Date.UTC(year, month, 0));
   const lastDay = last.getUTCDate();
@@ -150,7 +192,16 @@ export async function getMonthAvailability(year: number, month: number): Promise
     }),
     prisma.shift.findMany({
       where: { workDate: { gte: firstDay, lte: lastDayDate } },
-      include: { employee: true },
+      select: {
+        id: true,
+        employeeId: true,
+        workDate: true,
+        startTime: true,
+        endTime: true,
+        createdAt: true,
+        updatedAt: true,
+        employee: { select: { id: true, active: true } },
+      },
     }),
     prisma.reservation.findMany({
       where: {
@@ -206,8 +257,7 @@ export async function getMonthAvailability(year: number, month: number): Promise
       out.push({ date: iso, isOpen: false, hasAvailableSlot: false });
       continue;
     }
-    const slots = buildSlotsForDay(ctx);
-    const hasAvailableSlot = slots.some((s) => s.available);
+    const hasAvailableSlot = hasAvailableSlotForDay(ctx);
     out.push({ date: iso, isOpen: true, hasAvailableSlot });
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { asRecord, safeParseJson } from "@/lib/parse-api";
 import {
   todayUtcIso,
@@ -51,6 +51,8 @@ function normalizeBookingDate(d: unknown): string {
 }
 
 export default function AdminHome() {
+  const monthRequestIdRef = useRef(0);
+  const dayRequestIdRef = useRef(0);
   const [cursor, setCursor] = useState(() => {
     const t = new Date();
     return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1 };
@@ -85,43 +87,51 @@ export default function AdminHome() {
   }, [cursor]);
 
   const refreshMonth = useCallback(async () => {
+    const requestId = ++monthRequestIdRef.current;
     setLoading(true);
     setError(null);
-    try {
-      const fetchOpts = { credentials: "include" as RequestCredentials };
-      const [calRes, resRes, empRes] = await Promise.all([
-        fetch(`/api/public/calendar?year=${cursor.y}&month=${cursor.m}`),
-        fetch(`/api/admin/reservations?from=${monthRange.start}&to=${monthRange.end}`, fetchOpts),
-        fetch("/api/admin/employees", fetchOpts),
-      ]);
-      const calRaw = await safeParseJson(calRes);
-      const resRaw = await safeParseJson(resRes);
-      const empRaw = await safeParseJson(empRes);
-      const calData = asRecord(calRaw);
-      const resData = asRecord(resRaw);
-      const empData = asRecord(empRaw);
+    const fetchOpts = { credentials: "include" as RequestCredentials, cache: "no-store" as RequestCache };
 
-      if (!calRes.ok) throw new Error(typeof calData.error === "string" ? calData.error : "カレンダー取得失敗");
-      if (!resRes.ok) throw new Error(typeof resData.error === "string" ? resData.error : "予約取得失敗");
-      if (!empRes.ok) throw new Error(typeof empData.error === "string" ? empData.error : "従業員取得失敗");
+    const tasks = [
+      (async () => {
+        const calRes = await fetch(`/api/public/calendar?year=${cursor.y}&month=${cursor.m}`, { cache: "no-store" });
+        const calRaw = await safeParseJson(calRes);
+        const calData = asRecord(calRaw);
+        if (!calRes.ok) throw new Error(typeof calData.error === "string" ? calData.error : "カレンダー取得失敗");
+        if (requestId !== monthRequestIdRef.current) return;
+        setDays(Array.isArray(calData.days) ? (calData.days as DaySummary[]) : []);
+      })(),
+      (async () => {
+        const resRes = await fetch(`/api/admin/reservations?from=${monthRange.start}&to=${monthRange.end}`, fetchOpts);
+        const resRaw = await safeParseJson(resRes);
+        const resData = asRecord(resRaw);
+        if (!resRes.ok) throw new Error(typeof resData.error === "string" ? resData.error : "予約取得失敗");
+        if (requestId !== monthRequestIdRef.current) return;
+        const resList = Array.isArray(resData.reservations) ? resData.reservations : [];
+        setReservations(
+          resList.map((r) => {
+            const row = r as ReservationRow & { date: unknown };
+            return { ...row, date: normalizeBookingDate(row.date) };
+          }),
+        );
+      })(),
+      (async () => {
+        const empRes = await fetch("/api/admin/employees", fetchOpts);
+        const empRaw = await safeParseJson(empRes);
+        const empData = asRecord(empRaw);
+        if (!empRes.ok) throw new Error(typeof empData.error === "string" ? empData.error : "従業員取得失敗");
+        if (requestId !== monthRequestIdRef.current) return;
+        setEmployees(Array.isArray(empData.employees) ? (empData.employees as EmployeeRow[]) : []);
+      })(),
+    ];
 
-      setDays(Array.isArray(calData.days) ? (calData.days as DaySummary[]) : []);
-      const resList = Array.isArray(resData.reservations) ? resData.reservations : [];
-      setReservations(
-        resList.map((r) => {
-          const row = r as ReservationRow & { date: unknown };
-          return { ...row, date: normalizeBookingDate(row.date) };
-        }),
-      );
-      setEmployees(Array.isArray(empData.employees) ? (empData.employees as EmployeeRow[]) : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "エラー");
-      setDays([]);
-      setReservations([]);
-      setEmployees([]);
-    } finally {
-      setLoading(false);
+    const results = await Promise.allSettled(tasks);
+    if (requestId !== monthRequestIdRef.current) return;
+    const rejected = results.find((r) => r.status === "rejected");
+    if (rejected && rejected.status === "rejected") {
+      setError(rejected.reason instanceof Error ? rejected.reason.message : "エラー");
     }
+    setLoading(false);
   }, [cursor, monthRange.end, monthRange.start]);
 
   useEffect(() => {
@@ -146,12 +156,15 @@ export default function AdminHome() {
   }, [cursor.y, cursor.m, monthRange.start, monthRange.end]);
 
   const loadDay = useCallback(async (date: string) => {
+    const requestId = ++dayRequestIdRef.current;
     setError(null);
+    setDayDetail(null);
     try {
-      const res = await fetch(`/api/admin/day?date=${encodeURIComponent(date)}`, { credentials: "include" });
+      const res = await fetch(`/api/admin/day?date=${encodeURIComponent(date)}`, { credentials: "include", cache: "no-store" });
       const raw = await safeParseJson(res);
       const data = asRecord(raw);
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "日次情報の取得失敗");
+      if (requestId !== dayRequestIdRef.current) return;
       const resv = Array.isArray(data.reservations) ? data.reservations : [];
       setDayDetail({
         slots: Array.isArray(data.slots) ? (data.slots as SlotRow[]) : [],
@@ -162,6 +175,7 @@ export default function AdminHome() {
         shifts: Array.isArray(data.shifts) ? (data.shifts as ShiftRow[]) : [],
       });
     } catch (e) {
+      if (requestId !== dayRequestIdRef.current) return;
       setError(e instanceof Error ? e.message : "エラー");
       setDayDetail({ slots: [], reservations: [], shifts: [] });
     }

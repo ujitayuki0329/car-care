@@ -21,7 +21,7 @@ type ReservationRow = {
   createdAt?: string | null;
 };
 
-const fetchOpts: RequestInit = { credentials: "include" };
+const fetchOpts: RequestInit = { credentials: "include", cache: "no-store" };
 
 function normalizeBookingDate(d: unknown): string {
   if (typeof d === "string") return d.length >= 10 ? d.slice(0, 10) : d;

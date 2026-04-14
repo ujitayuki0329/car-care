@@ -5,6 +5,9 @@ import { requireAdminResponse } from "@/lib/api-admin";
 import { prisma } from "@/lib/prisma";
 import { formatISODate, parseISODateOnly, timeToMinutes } from "@/lib/time";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const weeklyShiftSeedSchema = z.object({
   /** 0=日 … 6=土（UTC・カレンダー画面と同じ） */
   weekdays: z.array(z.number().int().min(0).max(6)),

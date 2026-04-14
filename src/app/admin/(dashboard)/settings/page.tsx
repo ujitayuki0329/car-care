@@ -5,7 +5,7 @@ import { asRecord, safeParseJson } from "@/lib/parse-api";
 import { utcIsoFromYmd, utcMonthMeta } from "@/lib/calendar-grid";
 
 const WD_LABELS = ["日曜", "月曜", "火曜", "水曜", "木曜", "金曜", "土曜"];
-const fetchOpts: RequestInit = { credentials: "include" };
+const fetchOpts: RequestInit = { credentials: "include", cache: "no-store" };
 
 type WeekdayRule = { weekday: number; isClosed: boolean };
 type Override = {

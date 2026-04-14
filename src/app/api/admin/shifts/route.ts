@@ -4,6 +4,9 @@ import { requireAdminResponse } from "@/lib/api-admin";
 import { prisma } from "@/lib/prisma";
 import { parseISODateOnly } from "@/lib/time";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const putSchema = z.object({
   employeeId: z.string().min(1),
   workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
